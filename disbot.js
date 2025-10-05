@@ -1,5 +1,21 @@
 const { Client } = require("discord.js-selfbot-v13");
 const { Client: BotClient, GatewayIntentBits } = require("discord.js");
+const http = require('http');
+
+// Simple health check server for Fly.io
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+  } else {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('Discord Bot is running');
+  }
+});
+
+server.listen(8080, '0.0.0.0', () => {
+  console.log('✅ Health check server running on port 8080');
+});
 
 // Get configuration from environment variables
 const botInstances = [
@@ -11,7 +27,6 @@ const botInstances = [
   },
 ];
 
-// Validate required environment variables
 const validateConfig = (config) => {
   const missing = [];
   if (!config.botToken) missing.push('BOT_TOKEN');
@@ -20,7 +35,7 @@ const validateConfig = (config) => {
   if (!config.email) missing.push('EMAIL');
   
   if (missing.length > 0) {
-    console.error(`Missing environment variables: ${missing.join(', ')}`);
+    console.error(`❌ Missing environment variables: ${missing.join(', ')}`);
     return false;
   }
   return true;
@@ -28,7 +43,7 @@ const validateConfig = (config) => {
 
 const initializeBot = ({ botToken, recipientUserId, userToken, email }) => {
   if (!validateConfig({ botToken, recipientUserId, userToken, email })) {
-    return;
+    process.exit(1);
   }
 
   const botClient = new BotClient({

@@ -1,0 +1,30 @@
+app = "your-discord-bot-name" # Change this to a unique name
+
+[build]
+
+[http]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[http.services]]
+  http_port = 80
+  internal_port = 8080
+
+[[http.services.checks]]
+  interval = "30s"
+  grace_period = "10s"
+  method = "get"
+  path = "/"
+  timeout = "5s"
+
+[env]
+  NODE_ENV = "production"
+
+# VM configuration
+[compute]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
