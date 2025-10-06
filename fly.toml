@@ -1,4 +1,4 @@
-app = "your-discord-bot-name" # Change this to a unique name
+app = "disbot-notifier" # Change this to a unique name
 
 [build]
 
@@ -17,7 +17,7 @@ app = "your-discord-bot-name" # Change this to a unique name
   interval = "30s"
   grace_period = "10s"
   method = "get"
-  path = "/"
+  path = "/health"
   timeout = "5s"
 
 [env]
