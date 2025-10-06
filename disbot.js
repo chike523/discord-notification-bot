@@ -46,11 +46,35 @@ botClient.once("ready", () => {
 botClient.on("guildMemberAdd", async (member) => {
   try {
     const welcomeMessage = `🚨 ${member.user.tag} has joined the server ${member.guild.name}`;
-    const user = await botClient.users.fetch(recipientUserId);
-    await user.send(welcomeMessage);
-    console.log(`📨 Sent notification for ${member.user.tag} joining ${member.guild.name}`);
+    
+    // Try to send DM first
+    try {
+      const user = await botClient.users.fetch(recipientUserId);
+      await user.send(welcomeMessage);
+      console.log(`📨 Sent DM notification for ${member.user.tag} joining ${member.guild.name}`);
+    } catch (dmError) {
+      console.log(`⚠️ Could not send DM (${dmError.message}), trying to send to general channel...`);
+      
+      // Try to send to a general channel as fallback
+      try {
+        const channel = member.guild.channels.cache.find(ch => 
+          ch.type === 0 && ch.name.includes('general')
+        ) || member.guild.channels.cache.find(ch => 
+          ch.type === 0 && ch.permissionsFor(botClient.user).has('SendMessages')
+        );
+        
+        if (channel) {
+          await channel.send(welcomeMessage);
+          console.log(`📨 Sent channel notification for ${member.user.tag} joining ${member.guild.name}`);
+        } else {
+          console.log(`❌ No suitable channel found to send notification`);
+        }
+      } catch (channelError) {
+        console.error(`❌ Failed to send channel notification:`, channelError.message);
+      }
+    }
   } catch (error) {
-    console.error(`❌ Failed to send DM:`, error);
+    console.error(`❌ Failed to process member join:`, error);
   }
 });
 
