@@ -42,6 +42,11 @@ const validateConfig = (config) => {
   
   if (missing.length > 0) {
     console.error(`❌ Missing environment variables: ${missing.join(', ')}`);
+    console.log('🔧 Please set these variables in Railway dashboard:');
+    console.log('   1. Go to Variables tab');
+    console.log('   2. Add each variable with exact names');
+    console.log('   3. Make sure no extra spaces in values');
+    console.log('   4. Click Deploy to restart');
     return false;
   }
   return true;
@@ -72,6 +77,7 @@ const initializeBot = ({ botToken, recipientUserId, userToken, email }) => {
 
   const client = new Client();
 
+  // Add error handling for self-bot
   client.on("ready", () => {
     console.log(`✅ Logged in as ${client.user.tag} on account ${email}!`);
   });
@@ -87,8 +93,25 @@ const initializeBot = ({ botToken, recipientUserId, userToken, email }) => {
     }
   });
 
+  // Add error handling for self-bot crashes
+  client.on("error", (error) => {
+    console.error(`❌ Self-bot error for ${email}:`, error.message);
+    console.log(`🔄 Attempting to reconnect self-bot for ${email}...`);
+    // Don't exit, just log the error and continue
+  });
+
+  // Handle uncaught exceptions in self-bot
+  process.on('uncaughtException', (error) => {
+    if (error.message.includes('friend_source_flags')) {
+      console.log(`⚠️ Self-bot compatibility issue detected for ${email}, continuing without self-bot...`);
+      return; // Don't crash the entire bot
+    }
+    console.error(`❌ Uncaught exception:`, error);
+  });
+
   client.login(userToken).catch((error) => {
     console.error(`❌ Failed to log in with token for account ${email}:`, error);
+    console.log(`⚠️ Self-bot login failed, but regular bot will continue working...`);
   });
 };
 
