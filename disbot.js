@@ -18,6 +18,12 @@ server.listen(8080, '0.0.0.0', () => {
 });
 
 // Get configuration from environment variables
+console.log('🔍 Environment variables check:');
+console.log('BOT_TOKEN:', process.env.BOT_TOKEN ? 'SET' : 'NOT SET');
+console.log('RECIPIENT_ID:', process.env.RECIPIENT_ID ? 'SET' : 'NOT SET');
+console.log('USER_TOKEN:', process.env.USER_TOKEN ? 'SET' : 'NOT SET');
+console.log('EMAIL:', process.env.EMAIL ? 'SET' : 'NOT SET');
+
 const botInstances = [
   {
     botToken: process.env.BOT_TOKEN,
