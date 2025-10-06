@@ -1,4 +1,3 @@
-const { Client } = require("discord.js-selfbot-v13");
 const { Client: BotClient, GatewayIntentBits } = require("discord.js");
 const http = require('http');
 
@@ -21,102 +20,43 @@ server.listen(8080, '0.0.0.0', () => {
 console.log('🔍 Environment variables check:');
 console.log('BOT_TOKEN:', process.env.BOT_TOKEN ? 'SET' : 'NOT SET');
 console.log('RECIPIENT_ID:', process.env.RECIPIENT_ID ? 'SET' : 'NOT SET');
-console.log('USER_TOKEN:', process.env.USER_TOKEN ? 'SET' : 'NOT SET');
-console.log('EMAIL:', process.env.EMAIL ? 'SET' : 'NOT SET');
 
-const botInstances = [
-  {
-    botToken: process.env.BOT_TOKEN,
-    recipientUserId: process.env.RECIPIENT_ID,
-    userToken: process.env.USER_TOKEN,
-    email: process.env.EMAIL,
-  },
-];
+const botToken = process.env.BOT_TOKEN;
+const recipientUserId = process.env.RECIPIENT_ID;
 
-const validateConfig = (config) => {
-  const missing = [];
-  if (!config.botToken) missing.push('BOT_TOKEN');
-  if (!config.recipientUserId) missing.push('RECIPIENT_ID');
-  if (!config.userToken) missing.push('USER_TOKEN');
-  if (!config.email) missing.push('EMAIL');
-  
-  if (missing.length > 0) {
-    console.error(`❌ Missing environment variables: ${missing.join(', ')}`);
-    console.log('🔧 Please set these variables in Railway dashboard:');
-    console.log('   1. Go to Variables tab');
-    console.log('   2. Add each variable with exact names');
-    console.log('   3. Make sure no extra spaces in values');
-    console.log('   4. Click Deploy to restart');
-    return false;
+if (!botToken || !recipientUserId) {
+  console.error('❌ Missing required environment variables: BOT_TOKEN, RECIPIENT_ID');
+  process.exit(1);
+}
+
+const botClient = new BotClient({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages,
+  ],
+});
+
+botClient.once("ready", () => {
+  console.log(`✅ Bot logged in as ${botClient.user.tag}`);
+});
+
+botClient.on("guildMemberAdd", async (member) => {
+  try {
+    const welcomeMessage = `🚨 ${member.user.tag} has joined the server ${member.guild.name}`;
+    const user = await botClient.users.fetch(recipientUserId);
+    await user.send(welcomeMessage);
+    console.log(`📨 Sent notification for ${member.user.tag} joining ${member.guild.name}`);
+  } catch (error) {
+    console.error(`❌ Failed to send DM:`, error);
   }
-  return true;
-};
+});
 
-const initializeBot = ({ botToken, recipientUserId, userToken, email }) => {
-  if (!validateConfig({ botToken, recipientUserId, userToken, email })) {
-    process.exit(1);
-  }
-
-  const botClient = new BotClient({
-    intents: [
-      GatewayIntentBits.Guilds,
-      GatewayIntentBits.GuildMembers,
-      GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent,
-      GatewayIntentBits.DirectMessages,
-    ],
-  });
-
-  botClient.once("ready", () => {
-    console.log(`✅ Bot logged in as ${botClient.user.tag}`);
-  });
-
-  botClient.login(botToken).catch((error) => {
-    console.error("❌ Bot failed to log in:", error);
-  });
-
-  const client = new Client();
-
-  // Add error handling for self-bot
-  client.on("ready", () => {
-    console.log(`✅ Logged in as ${client.user.tag} on account ${email}!`);
-  });
-
-  client.on("guildMemberAdd", async (member) => {
-    try {
-      const welcomeMessage = `🚨 ${member.user.tag} has joined the server ${member.guild.name}`;
-      const user = await botClient.users.fetch(recipientUserId);
-      await user.send(welcomeMessage);
-      console.log(`📨 Sent notification for ${member.user.tag} joining ${member.guild.name}`);
-    } catch (error) {
-      console.error(`❌ Failed to send DM for ${email}:`, error);
-    }
-  });
-
-  // Add error handling for self-bot crashes
-  client.on("error", (error) => {
-    console.error(`❌ Self-bot error for ${email}:`, error.message);
-    console.log(`🔄 Attempting to reconnect self-bot for ${email}...`);
-    // Don't exit, just log the error and continue
-  });
-
-  // Handle uncaught exceptions in self-bot
-  process.on('uncaughtException', (error) => {
-    if (error.message.includes('friend_source_flags')) {
-      console.log(`⚠️ Self-bot compatibility issue detected for ${email}, continuing without self-bot...`);
-      return; // Don't crash the entire bot
-    }
-    console.error(`❌ Uncaught exception:`, error);
-  });
-
-  client.login(userToken).catch((error) => {
-    console.error(`❌ Failed to log in with token for account ${email}:`, error);
-    console.log(`⚠️ Self-bot login failed, but regular bot will continue working...`);
-  });
-};
-
-// Start the bot
-botInstances.forEach(initializeBot);
+botClient.login(botToken).catch((error) => {
+  console.error("❌ Bot failed to log in:", error);
+});
 
 // Handle graceful shutdown
 process.on('SIGINT', () => {
